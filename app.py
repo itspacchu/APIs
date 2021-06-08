@@ -1,10 +1,9 @@
 from utils import find_dominant_color
-import flask,os,time
-from flask.json import jsonify
-app = flask.Flask(__name__)
+import flask,os
 from PIL import Image
 from utils import find_dominant_color
 
+app = flask.Flask(__name__)
 
 @app.route('/')
 def default_page():
@@ -48,5 +47,4 @@ def upload_file():
         
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host='0.0.0.0', port=port)
+    app.run()
