@@ -2,7 +2,7 @@
 
 Some Random APIs I'm working on
 
-```live http://api.itspacchu.tk/```
+**live** ``` http://api.itspacchu.tk/```
 
 ### Dominant Color ( ```/dominant-colour ```)
 
