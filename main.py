@@ -27,8 +27,7 @@ def default_page():
 def upload_file():
     if flask.request.method == 'POST':
         f = flask.request.files['image']
-        f.save(f.filename)
-        img = Image.open(f.filename)
+        img = Image.open(f)
         try:
             if(img.size[0] > 50 or img.size[1] > 50):
                 return flask.jsonify({
@@ -43,10 +42,10 @@ def upload_file():
                 })
         except:
             return flask.jsonify({
-                        'hexval':'Expected a .png file of size 50x50 ... got something weird',
+                        'hexval':'0x000000',
                         'status':'BAD REQUEST'
                     })
-        os.remove(f.filname)
+        
 
         
 if __name__ == '__main__':
