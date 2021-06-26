@@ -4,7 +4,7 @@ Some Random APIs I'm working on
 
 **live** ``` http://api.itspacchu.tk/```
 
-### Dominant Color ( ```/dominant_colour ```)
+### Dominant Color ( ```/dominant_color ```)
 
     method 'POST'
 
