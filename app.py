@@ -13,7 +13,7 @@ def index():
     <html><head><style>body { color: black;}
     </style></head><body><h1 id="pacchu-s-apis">Pacchu&#39;s APIs</h1>
     <p>Some Random APIs I&#39;m working on</p>
-    <h2 id="dominant-color-dominant-colour-">Dominant Color ( <code>/dominant-color</code> )</h2>
+    <h2 id="dominant-color-dominant-color-">Dominant Color ( <code>/dominant_color</code> )</h2>
     <blockquote>
     <p> method <strong>&#39;POST&#39;</strong></p>
     <p> key  = &#39;image&#39;</p>
