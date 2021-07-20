@@ -1,9 +1,13 @@
+from re import T
+from werkzeug.wrappers import request
 from utils import find_dominant_color
 import flask,os
 from PIL import Image
 from utils import find_dominant_color
 from urllib.parse import unquote
 from random import choice
+from scraper import GPACalculator, JNTUResultAPI
+import json
 
 app = flask.Flask(__name__)
 
@@ -13,7 +17,7 @@ def index():
     <html><head><style>body { color: black;}
     </style></head><body><h1 id="pacchu-s-apis">Pacchu&#39;s APIs</h1>
     <p>Some Random APIs I&#39;m working on</p>
-    <h2 id="dominant-color-dominant-colour-">Dominant Color ( <code>/dominant-colour</code> )</h2>
+    <h2 id="dominant-color-dominant-colour-">Dominant Color ( <code>/dominant_colour</code> )</h2>
     <blockquote>
     <p> method <strong>&#39;POST&#39;</strong></p>
     <p> key  = &#39;image&#39;</p>
@@ -23,6 +27,27 @@ def index():
     </body></html>
     """
     return html
+
+
+# create a new app route for jntuRequestsAPI
+@app.route('/jnturesult', methods=['GET'])
+def jntuRequestsAPI():
+    # take post requests parameters and pass it through JNTUResultAPI
+    rollNo = flask.request.args.get('rollno')
+    examCode = flask.request.args.get('examcode')
+    if(rollNo == None or examCode == None):
+        responsejson = {
+            'message':"Give a roll no and exam code"    
+        }
+        return flask.jsonify(responsejson)
+    
+    result = JNTUResultAPI(rollNo, examCode)
+    SGPA = GPACalculator(result)
+    resultWithSGPA = {
+        'result':result,
+        'sgpa':SGPA
+    }
+    return flask.jsonify(resultWithSGPA)
 
 
 @app.route(r'/login')
@@ -54,7 +79,7 @@ def test_meta_tag():
        <meta property="og:video" content="{vid_url}" />
        <meta property="og:video:type" content="text/html" />
        <meta property="og:title" content="{embed_title}">
-       <meta property="og:description"  content="{embed_desc}"/>
+       <meta property="og:description" content="{embed_desc}"/>
        <body>
        <video width="100%" src="{vid_url}" controls>
        </video>
