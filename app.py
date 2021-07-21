@@ -46,6 +46,7 @@ def index():
 @app.route('/jnturesult', methods=['GET'])
 def jntuRequestsAPI():
     # take post requests parameters and pass it through JNTUResultAPI
+    dbMode = 0
     rollNo = flask.request.args.get('rollno')
     examCode = flask.request.args.get('examcode')
     if(rollNo == None or examCode == None):
@@ -56,8 +57,10 @@ def jntuRequestsAPI():
     try:
         result = db.find({'rollno': rollNo, 'examcode': examCode})[0]
         result.pop('_id')
+        dbMode = 1
     except IndexError:
         result = JNTUResultAPI(rollNo, examCode)
+        dbMode = 0
     SGPA = GPACalculator(result)
     resultWithSGPA = {
         'unique':str(rollNo+examCode),
@@ -67,7 +70,9 @@ def jntuRequestsAPI():
         'sgpa':SGPA
     }
     jsonified = flask.jsonify(resultWithSGPA)
-    db.insert(resultWithSGPA)
+    if(dbMode):
+        db.insert(resultWithSGPA)
+        dbMode = 0
     return jsonified
 
 
