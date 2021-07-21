@@ -1,5 +1,3 @@
-from re import T
-from werkzeug.wrappers import request
 from utils import find_dominant_color
 import flask,os
 from PIL import Image
@@ -8,6 +6,12 @@ from urllib.parse import unquote
 from random import choice
 from scraper import GPACalculator, JNTUResultAPI
 import json
+from pymongo import MongoClient
+import os
+
+mongo_url = f"mongodb+srv://enigma:{os.environ['MONGO_ENIGMA']}@{os.environ['MONGO_ENIGMAURL']}"
+mongo_client = MongoClient(mongo_url)
+db = mongo_client['jnturesults']['jnturesult']
 
 app = flask.Flask(__name__)
 
@@ -24,6 +28,15 @@ def index():
     <p>Image shouldn&#39;t exceed 50x50 px</p>
     </blockquote>
     <h2 id="video-ogp-vidembed-url-encoded-url-mp4-">Video OGP (<code>/vidembed/[url-encoded-url.mp4]</code>)</h2>
+    <h2 id="jnturesult">JNTU Result (<code>/jnturesult/</code>)</h2>
+    <blockquote>
+    <p> method <strong>&#39;GET&#39;</strong></p>
+    <code>
+    <p> rollno  = &#39;RollNumber [18XX1A0XXX]&#39;</p>
+    <p> examcode  = &#39; XXXX &#39;</p>
+    </code>
+    <p> Results are Cached </p>
+    </blockquote>
     </body></html>
     """
     return html
@@ -40,14 +53,22 @@ def jntuRequestsAPI():
             'message':"Give a roll no and exam code"    
         }
         return flask.jsonify(responsejson)
-    
-    result = JNTUResultAPI(rollNo, examCode)
+    try:
+        result = db.find({'rollno': rollNo, 'examcode': examCode})[0]
+        result.pop('_id')
+    except IndexError:
+        result = JNTUResultAPI(rollNo, examCode)
     SGPA = GPACalculator(result)
     resultWithSGPA = {
+        'unique':str(rollNo+examCode),
+        'rollno':str(rollNo),
+        'examcode':str(examCode),
         'result':result,
         'sgpa':SGPA
     }
-    return flask.jsonify(resultWithSGPA)
+    jsonified = flask.jsonify(resultWithSGPA)
+    db.insert(resultWithSGPA)
+    return jsonified
 
 
 @app.route(r'/login')
