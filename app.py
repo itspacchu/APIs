@@ -4,12 +4,13 @@ from PIL import Image
 from utils import find_dominant_color
 from urllib.parse import unquote
 from random import choice
-from scraper import GPACalculator, JNTUResultAPI
+from scraper import JNTUResult
 import json
 from pymongo import MongoClient
 import os
 
 mongo_url = f"mongodb+srv://enigma:{os.environ['MONGO_ENIGMA']}@{os.environ['MONGO_ENIGMAURL']}"
+
 mongo_client = MongoClient(mongo_url)
 db = mongo_client['jnturesults']['jnturesult']
 
@@ -46,33 +47,42 @@ def index():
 @app.route('/jnturesult', methods=['GET'])
 def jntuRequestsAPI():
     # take post requests parameters and pass it through JNTUResultAPI
-    dbMode = 0
+    dbMode = False
     rollNo = flask.request.args.get('rollno')
     examCode = flask.request.args.get('examcode')
+    
     if(rollNo == None or examCode == None):
         responsejson = {
             'message':"Give a roll no and exam code"    
         }
         return flask.jsonify(responsejson)
+    
+    jr = JNTUResult(rollNo, examCode)
+    jrmethod = jr()
     try:
-        result = db.find({'rollno': rollNo, 'examcode': examCode})[0]
+        result = db.find({'unique': str(rollNo+examCode)})[0] 
         result.pop('_id')
-        dbMode = 1
+        dbMode = False
     except IndexError:
-        result = JNTUResultAPI(rollNo, examCode)
-        dbMode = 0
-    SGPA = GPACalculator(result)
+        result = jrmethod['result']
+        dbMode = True # add to db for caching
+    try:
+        SGPA = jrmethod['sgpa']
+    except Exception as e:
+        SGPA = "Coudn't Calculate due to > " + str(e)
     resultWithSGPA = {
         'unique':str(rollNo+examCode),
         'rollno':str(rollNo),
         'examcode':str(examCode),
         'result':result,
-        'sgpa':SGPA
+        'sgpa':SGPA,
+        'usr':jrmethod['user']
     }
     jsonified = flask.jsonify(resultWithSGPA)
     if(dbMode):
         db.insert(resultWithSGPA)
-        dbMode = 0
+        dbMode = False
+        
     return jsonified
 
 
