@@ -4,10 +4,17 @@ Some Random APIs I'm working on
 
 **live** ``` http://api.itspacchu.tk/```
 
-### Dominant Color ( ```/dominant_color ```)
+### Dominant Color ( ```POST /dominant_color ```)
 
-    method 'POST'
+    image (bytes) Not more than 50x50 px
 
-    key = 'image'
+### JNTUH Results ( ```GET /jnturesults ```)
 
-    Image shouldn't exceed 50x50 px
+    rollno (string)   Eg: "1XAG1A0XXX" 
+    examcode (string) Eg: "1454" for 3-1 R18 Exams 
+    
+### VideoEmbed (``` GET /vidembed ```)
+    vsrc (url ended string) 
+    
+    
+    
