@@ -11,6 +11,7 @@ import os
 
 mongo_url = f"mongodb+srv://enigma:{os.environ['MONGO_ENIGMA']}@{os.environ['MONGO_ENIGMAURL']}"
 
+
 mongo_client = MongoClient(mongo_url)
 db = mongo_client['jnturesults']['jnturesult']
 
@@ -42,6 +43,7 @@ def index():
     """
     return html
 
+    
 
 # create a new app route for jntuRequestsAPI
 @app.route('/jnturesult', methods=['GET'])
@@ -56,33 +58,34 @@ def jntuRequestsAPI():
             'message':"Give a roll no and exam code"    
         }
         return flask.jsonify(responsejson)
-    
-    jr = JNTUResult(rollNo, examCode)
-    jrmethod = jr()
     try:
-        result = db.find({'unique': str(rollNo+examCode)})[0] 
-        result.pop('_id')
+        resultWithSGPA = db.find({'unique': str(rollNo+examCode)})[0]
+        resultWithSGPA.pop('_id')
         dbMode = False
     except IndexError:
+        jr = JNTUResult(rollNo, examCode)
+        jrmethod = jr.recursiveGet()
+        try:
+            SGPA = jrmethod['sgpa']
+        except Exception as e:
+            SGPA = "Coudn't Calculate due to > " + str(e)
         result = jrmethod['result']
         dbMode = True # add to db for caching
-    try:
-        SGPA = jrmethod['sgpa']
-    except Exception as e:
-        SGPA = "Coudn't Calculate due to > " + str(e)
-    resultWithSGPA = {
-        'unique':str(rollNo+examCode),
-        'rollno':str(rollNo),
-        'examcode':str(examCode),
-        'result':result,
-        'sgpa':SGPA,
-        'usr':jrmethod['user']
-    }
+        resultWithSGPA = {
+            'unique': str(rollNo+examCode),
+            'rollno': str(rollNo),
+            'examcode': str(examCode),
+            'result': result,
+            'sgpa': SGPA,
+            'usr': jrmethod['user']
+        }
+    
     jsonified = flask.jsonify(resultWithSGPA)
     if(dbMode):
-        db.insert(resultWithSGPA)
-        dbMode = False
-        
+        if(type(resultWithSGPA['sgpa']) == float or type(resultWithSGPA['sgpa']) == int):
+            print("Insert to dB cuz valid result")
+            db.insert_one(resultWithSGPA)
+        dbMode = False      
     return jsonified
 
 
