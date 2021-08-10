@@ -22,6 +22,38 @@ db = mongo_client['jnturesults']['jnturesult']
 app = flask.Flask(__name__)
 
 
+def jresInternal(rollNo, examCode):
+    # take post requests parameters and pass it through JNTUResultAPI
+    dbMode = False
+    try:
+        resultWithSGPA = db.find({'unique': str(rollNo+examCode)})[0]
+        resultWithSGPA.pop('_id')
+        dbMode = False
+    except IndexError:
+        jr = JNTUResult(rollNo, examCode)
+        jrmethod = jr.recursiveGet()
+        try:
+            SGPA = jrmethod['sgpa']
+        except Exception as e:
+            SGPA = "Coudn't Calculate due to > " + str(e)
+        result = jrmethod['result']
+        dbMode = True  # add to db for caching
+        resultWithSGPA = {
+            'unique': str(rollNo+examCode),
+            'rollno': str(rollNo),
+            'examcode': str(examCode),
+            'result': result,
+            'sgpa': SGPA,
+            'usr': jrmethod['user']
+        }
+
+    if(dbMode):
+        if(type(resultWithSGPA['sgpa']) == float or type(resultWithSGPA['sgpa']) == int):
+            db.insert_one(resultWithSGPA)
+        dbMode = False
+    return resultWithSGPA
+
+
 @app.route('/')
 def index():
     html = """
@@ -84,8 +116,7 @@ def showresult():
     messages = {}
     try:
         msg = json.loads(request.args['messages'])
-        messages = json.loads(requests.get(API_ENDPOINT, params={
-                              "rollno":  msg["rollno"], "examcode": msg["examcode"]}).text)
+        messages = jresInternal(rollNo=msg['rollno'], examCode=msg['examcode'])
         if("result" in dict(messages).keys()):
             messages = messages['result']
         return render_template('result.html', messages=messages, tabcol=len(messages['result']))
