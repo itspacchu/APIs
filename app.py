@@ -1,6 +1,9 @@
 from utils import find_dominant_color
-import flask,os
+import flask
+import os
 from PIL import Image
+from flask import render_template, redirect, request, url_for
+import requests
 from utils import find_dominant_color
 from urllib.parse import unquote
 from random import choice
@@ -11,11 +14,13 @@ import os
 
 mongo_url = f"mongodb+srv://enigma:{os.environ['MONGO_ENIGMA']}@{os.environ['MONGO_ENIGMAURL']}"
 
+API_ENDPOINT = "http://api.itspacchu.tk/jnturesult"
 
 mongo_client = MongoClient(mongo_url)
 db = mongo_client['jnturesults']['jnturesult']
 
 app = flask.Flask(__name__)
+
 
 @app.route('/')
 def index():
@@ -43,19 +48,65 @@ def index():
     """
     return html
 
-    
+
+@app.route('/huh')
+def huh():
+    errmsg = request.args.get('errmsg')
+    return render_template('messprinter.html', showmessage=errmsg)
+
+
+@app.route('/results')
+def home():
+    errmsg = None
+    rollno = request.args.get('rollno')
+    if(rollno != None):
+        if("<" in rollno):
+            err = "Wtf you trynna do m8??"
+            return redirect(url_for('.huh', errmsg=err), code=302)
+        if("rickroll" in rollno.replace(" ", "").lower()):
+            err = "lol"
+            return redirect(url_for('.huh', errmsg=err), code=302)
+
+    examcode = request.args.get('examcode')
+    if(rollno or examcode):
+        messages = json.dumps({"rollno": rollno, "examcode": examcode})
+        return redirect(url_for('.showresult', messages=messages), code=302)
+    if(request.args.get("messages") != None):
+        errmsg = "Result not found ... Server didnt respond ( Probably RollNo Doesn't Exist )"
+    else:
+        errmsg = None
+
+    return render_template('home.html', errmsg=errmsg)
+
+
+@app.route('/showresult')
+def showresult():
+    messages = {}
+    try:
+        msg = json.loads(request.args['messages'])
+        messages = json.loads(requests.get(API_ENDPOINT, params={
+                              "rollno":  msg["rollno"], "examcode": msg["examcode"]}).text)
+        if("result" in dict(messages).keys()):
+            messages = messages['result']
+        return render_template('result.html', messages=messages, tabcol=len(messages['result']))
+    except Exception as e:
+        print(e)
+        messages['errmsg'] = str(e)
+        return redirect(url_for('.home', messages=messages, code=302))
 
 # create a new app route for jntuRequestsAPI
+
+
 @app.route('/jnturesult', methods=['GET'])
 def jntuRequestsAPI():
     # take post requests parameters and pass it through JNTUResultAPI
     dbMode = False
     rollNo = flask.request.args.get('rollno')
     examCode = flask.request.args.get('examcode')
-    
+
     if(rollNo == None or examCode == None):
         responsejson = {
-            'message':"Give a roll no and exam code"    
+            'message': "Give a roll no and exam code"
         }
         return flask.jsonify(responsejson)
     try:
@@ -70,7 +121,7 @@ def jntuRequestsAPI():
         except Exception as e:
             SGPA = "Coudn't Calculate due to > " + str(e)
         result = jrmethod['result']
-        dbMode = True # add to db for caching
+        dbMode = True  # add to db for caching
         resultWithSGPA = {
             'unique': str(rollNo+examCode),
             'rollno': str(rollNo),
@@ -79,19 +130,20 @@ def jntuRequestsAPI():
             'sgpa': SGPA,
             'usr': jrmethod['user']
         }
-    
+
     jsonified = flask.jsonify(resultWithSGPA)
     if(dbMode):
         if(type(resultWithSGPA['sgpa']) == float or type(resultWithSGPA['sgpa']) == int):
             print("Insert to dB cuz valid result")
-            db.insert_one(resultWithSGPA)
-        dbMode = False      
+            # db.insert_one(resultWithSGPA)
+        dbMode = False
     return jsonified
 
 
 @app.route(r'/login')
 def login_doesnt_exist():
     return choice(["wut u lookin for mate", "hmm there should be something important here right?", "something seems missing...!! weird"])
+
 
 @app.route(r'/vidembed')
 def test_meta_tag():
@@ -128,7 +180,8 @@ def test_meta_tag():
         Not a valid parameter <br> Did you url-encode?  <a href="https://meyerweb.com/eric/tools/dencoder/"> URL ENCODER </a>
         """
 
-@app.route('/dominant_color', methods = ['POST'])
+
+@app.route('/dominant_color', methods=['POST'])
 def upload_file():
     if flask.request.method == 'POST':
         f = flask.request.files['image']
@@ -139,11 +192,11 @@ def upload_file():
                 img.close()
                 os.remove(f.filename)
                 return flask.jsonify({
-                    'hexval':'0x000000',
+                    'hexval': '0x000000',
                     'status': 'you sent a large image so i aint processing it'
                 })
-            else: 
-                returnable = find_dominant_color(f.filename,local=True)
+            else:
+                returnable = find_dominant_color(f.filename, local=True)
                 img.close()
                 os.remove(f.filename)
                 return flask.jsonify({
@@ -152,11 +205,10 @@ def upload_file():
                 })
         except IndexError:
             return flask.jsonify({
-                        'hexval':'0x000000',
-                        'status':'BAD REQUEST'})
-            
-        
+                'hexval': '0x000000',
+                'status': 'BAD REQUEST'})
+
 
 if __name__ == "__main__":
     #port = int(os.environ.get('PORT', 80))
-    app.run(host='0.0.0.0',port=80,debug=False)
+    app.run(host='0.0.0.0', port=80, debug=False)
