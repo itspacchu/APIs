@@ -26,8 +26,10 @@ class LogoData:
     GMAIL = "./logos/gmail.png"
     KINDLE = "./logos/kindle.png"
     STACKOVERFLOW = "./logos/stackoverflow.png"
+    LASTFM = "./logos/lastfm.png"
     ERROR = "./logos/err.png"
     NO = "./logos/no.png"
+
 
     def fetchFromString(string):
         if(string == "discord"):
@@ -60,6 +62,8 @@ class LogoData:
             return LogoData.GMAIL
         elif(string == "kindle"):
             return LogoData.KINDLE
+        elif(string == "lastfm"):
+            return LogoData.LASTFM
         elif(string == "stackoverflow"):
             return LogoData.STACKOVERFLOW
         else:
