@@ -69,7 +69,7 @@ def banner():
         page = request.args.get('text', default = "pacchu#4112", type = str)
         icon = "./logos/" + unquote(request.args.get('icon', default = "no", type = str)) + ".png"
         effect = unquote(request.args.get('effect', default = "none", type = str))
-        buff = unquote(request.args.get('buff', default = 16, type = int))
+        buff = request.args.get('buff', default = 16, type = int)
         return serveBanner(generateBanner(icon=icon,text=page,effect=effect,BUFF=buff))
     except IndexError:
         return serveBanner(generateBanner(icon="./logos/err.png",text="its somewhere?"))
