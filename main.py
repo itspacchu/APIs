@@ -1,73 +1,9 @@
-from curses.textpad import rectangle
-import pwd
-import PIL as pil
-from PIL import Image
-from PIL import ImageFont
-from PIL import ImageDraw 
+from PIL import ImageFilter,ImageEnhance,ImageDraw,ImageFont,Image
 from io import StringIO,BytesIO 
-from flask import Flask , send_file , request , current_app
+from flask import Flask , send_file , request , current_app 
 from urllib.parse import unquote
+
 app = Flask(__name__)
-
-class LogoData:
-    DISCORD = "./logos/discord.png"
-    TWITCH = "./logos/twitch.png"
-    GITHUB = "./logos/github.png"
-    LINKEDIN = "./logos/linkedin.png"
-    TWITTER = "./logos/twitter.png"
-    INSTAGRAM = "./logos/instagram.png"
-    YOUTUBE = "./logos/youtube.png"
-    MINECRAFT = "./logos/minecraft.png"
-    SPOTIFY = "./logos/spotify.png"
-    STEAM = "./logos/steam.png"
-    EPICGAMES = "./logos/epicgames.png"
-    PORNHUB = "./logos/pornhub.png"
-    RISEUP = "./logos/riseup.png"
-    GMAIL = "./logos/gmail.png"
-    KINDLE = "./logos/kindle.png"
-    STACKOVERFLOW = "./logos/stackoverflow.png"
-    LASTFM = "./logos/lastfm.png"
-    ERROR = "./logos/err.png"
-    NO = "./logos/no.png"
-
-
-    def fetchFromString(string):
-        if(string == "discord"):
-            return LogoData.DISCORD
-        elif(string == "twitch"):
-            return LogoData.TWITCH
-        elif(string == "github"):
-            return LogoData.GITHUB
-        elif(string == "linkedin"):
-            return LogoData.LINKEDIN
-        elif(string == "twitter"):
-            return LogoData.TWITTER
-        elif(string == "instagram"):
-            return LogoData.INSTAGRAM
-        elif(string == "youtube"):
-            return LogoData.YOUTUBE
-        elif(string == "minecraft"):
-            return LogoData.MINECRAFT
-        elif(string == "spotify"):
-            return LogoData.SPOTIFY
-        elif(string == "steam"):
-            return LogoData.STEAM
-        elif(string == "epicgames"):
-            return LogoData.EPICGAMES
-        elif(string == "pornhub"):
-            return LogoData.PORNHUB
-        elif(string == "riseup"):
-            return LogoData.RISEUP
-        elif(string == "gmail"):
-            return LogoData.GMAIL
-        elif(string == "kindle"):
-            return LogoData.KINDLE
-        elif(string == "lastfm"):
-            return LogoData.LASTFM
-        elif(string == "stackoverflow"):
-            return LogoData.STACKOVERFLOW
-        else:
-            return LogoData.NO
 
 def get_dominant_color(pil_img, palette_size=16):
     #https://stackoverflow.com/questions/3241929/python-find-dominant-most-common-color-in-an-image
@@ -94,19 +30,31 @@ def add_corners(im, rad):
     im.putalpha(alpha)
     return im
 
-def generateBanner(icon="./logos/github.png",color=None,text="@itspacchu",BUFF=16):
+def generateBanner(icon="./logos/github.png",color=None,text="@itspacchu",BUFF=16,effect=None):
     showIcon = Image.open(icon).resize((64,64))
     textColor = (255,255,255)
     if(color == None):
         color = get_dominant_color(showIcon,3)
         if(color[0] > 255/2 and color[1] > 255/2 and color[2] > 255/2):
             textColor = (10,10,10)
-    img_new = Image.new("RGB", (110 + len(text.strip().replace(" ",""))*17 ,64), color=color)
+    img_new = Image.new("RGB", (64 + BUFF + len(text.strip().replace("%2",""))*17 ,64), color=color)
     img_new.paste(showIcon, (8,0), mask=showIcon)
     draw = ImageDraw.Draw(img_new)
     font = ImageFont.truetype("./fonts/FiraSans-Medium.ttf", 32)
     draw.text((showIcon.size[0] + BUFF, 12), text=text, font=font,fill=textColor)
-    return add_corners(img_new, 20)
+    if(effect):
+        if("grayscale" in effect):
+            img_new = img_new.convert('L')
+        if("edge" in effect):
+            img_new = img_new.filter(ImageFilter.FIND_EDGES)
+        if("contour" in effect):
+            img_new = img_new.filter(ImageFilter.CONTOUR)
+        if("emboss" in effect):
+            img_new = img_new.filter(ImageFilter.EMBOSS)
+        if("smooth" in effect):
+            img_new = img_new.filter(ImageFilter.SMOOTH)
+        final = add_corners(img_new, 20)
+        return final
 
 def serveBanner(genImage):
     img_io = BytesIO()
@@ -119,10 +67,11 @@ def serveBanner(genImage):
 def banner():
     try:
         page = request.args.get('text', default = "pacchu#4112", type = str)
-        icon = LogoData.fetchFromString(unquote(request.args.get('icon', default = LogoData.DISCORD, type = str)))
-        return serveBanner(generateBanner(icon=icon,text=page))
-    except:
-        return serveBanner(generateBanner(icon=LogoData.ERROR,text="its somewhere?"))
+        icon = "./logos/" + unquote(request.args.get('icon', default = "no", type = str)) + ".png"
+        effect = unquote(request.args.get('effect', default = "none", type = str))
+        return serveBanner(generateBanner(icon=icon,text=page,effect=effect))
+    except IndexError:
+        return serveBanner(generateBanner(icon="./logos/err.png",text="its somewhere?"))
 
 @app.route("/")
 def index():
