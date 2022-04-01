@@ -37,7 +37,7 @@ def generateBanner(icon="./logos/github.png",color=None,text="@itspacchu",BUFF=1
         color = get_dominant_color(showIcon,3)
         if(color[0] > 255/2 and color[1] > 255/2 and color[2] > 255/2):
             textColor = (10,10,10)
-    img_new = Image.new("RGB", (64 + BUFF + len(text.strip().replace("%2",""))*17 ,64), color=color)
+    img_new = Image.new("RGB", (64 + BUFF + len(text.strip().replace("%2",""))*17 ,64) + BUFF, color=color)
     img_new.paste(showIcon, (8,0), mask=showIcon)
     draw = ImageDraw.Draw(img_new)
     font = ImageFont.truetype("./fonts/FiraSans-Medium.ttf", 32)
@@ -69,7 +69,8 @@ def banner():
         page = request.args.get('text', default = "pacchu#4112", type = str)
         icon = "./logos/" + unquote(request.args.get('icon', default = "no", type = str)) + ".png"
         effect = unquote(request.args.get('effect', default = "none", type = str))
-        return serveBanner(generateBanner(icon=icon,text=page,effect=effect))
+        buff = unquote(request.args.get('buff', default = 16, type = int))
+        return serveBanner(generateBanner(icon=icon,text=page,effect=effect,BUFF=buff))
     except IndexError:
         return serveBanner(generateBanner(icon="./logos/err.png",text="its somewhere?"))
 
